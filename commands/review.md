@@ -8,9 +8,16 @@ Ejecuta un review completo de pull request usando multiples agentes especializad
 
 **IMPORTANTE:**
 - El reporte completo debe estar en **ESPAÑOL**
-- Para cada hallazgo, incluir un **"PR Comment"** en **INGLES**, casual y breve, listo para copiar al PR
+- Para cada hallazgo, incluir un **"PR Comment"** en **INGLES**, casual y breve
 - Los PR Comments deben ser directos, como si hablaras con un colega
 - **NO usar tablas** - usar listas para presentar los hallazgos
+
+**CRITICO - SOLO REPORTE:**
+- Este review es SOLO un reporte para el revisor
+- **NUNCA** comentar automaticamente en el PR de GitHub
+- **NUNCA** usar `gh pr comment` o `gh pr review`
+- **NUNCA** postear comentarios en ninguna plataforma
+- Los "PR Comments" son sugerencias de texto que el revisor puede copiar MANUALMENTE si lo desea
 
 Ejemplo de formato para cada hallazgo:
 ```
@@ -221,4 +228,5 @@ Lo que esta bien hecho en este PR:
 - Todos los agentes corren en paralelo para reviews rapidos
 - Cada agente se enfoca en su especialidad para analisis profundo
 - Los resultados incluyen referencias file:line para navegacion facil
-- Los PR Comments estan listos para copiar y pegar en GitHub
+- Los PR Comments son texto sugerido para copiar manualmente
+- **NUNCA se postean comentarios automaticamente** - este es solo un reporte
