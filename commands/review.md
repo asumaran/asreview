@@ -1,190 +1,196 @@
 # Comprehensive PR Review
 
-Run a comprehensive pull request review using multiple specialized agents in parallel.
+Ejecuta un review completo de pull request usando multiples agentes especializados en paralelo.
 
 **Arguments:** "$ARGUMENTS"
 
-## Review Workflow
+## Instrucciones de Idioma
 
-### Step 1: Identify the PR
+**IMPORTANTE:**
+- El reporte completo debe estar en **ESPAÑOL**
+- Para cada hallazgo, incluir un **"PR Comment"** en **INGLES**, casual y breve, listo para copiar al PR
+- Los PR Comments deben ser directos, como si hablaras con un colega
 
-First, determine which PR to review:
+Ejemplo de formato para cada hallazgo:
+```
+**Ubicacion:** archivo.ts:42
+**Problema:** Posible inyeccion SQL por concatenacion de strings
+**PR Comment:** `hey, this query looks vulnerable to SQL injection - mind using parameterized queries instead?`
+```
 
-1. If a PR number or URL is provided in arguments, use that
-2. Otherwise, check if current branch has an open PR: `gh pr view --json number,title,body,url`
-3. If no PR exists, review the current branch changes against main
+## Flujo del Review
 
-### Step 2: Get PR Information
+### Paso 1: Identificar el PR
+
+1. Si se proporciona numero o URL en argumentos, usar ese
+2. Si no, verificar si el branch actual tiene PR abierto: `gh pr view --json number,title,body,url`
+3. Si no hay PR, revisar cambios del branch actual contra main
+
+### Paso 2: Obtener Informacion del PR
 
 ```bash
-# Get PR details (adjust number as needed)
-gh pr view <number> --json title,body,files,additions,deletions,baseRefName,headRefName
+# Detalles del PR
+gh pr view <number> --json title,body,files,additions,deletions,baseRefName,headRefName,author
 
-# Get the diff
+# Obtener el diff
 gh pr diff <number>
 
-# List changed files
+# Listar archivos cambiados
 gh pr diff <number> --name-only
 ```
 
-### Step 3: Launch Review Agents in Parallel
+### Paso 3: Lanzar Agentes en Paralelo
 
-Launch ALL of the following agents simultaneously using the Task tool. Each agent should receive:
-- The PR number or branch name
-- The list of changed files
-- Instructions to focus only on the PR changes
+Lanzar TODOS los siguientes agentes simultaneamente usando la herramienta Task. Cada agente debe recibir:
+- El numero de PR o nombre del branch
+- La lista de archivos cambiados
+- Instrucciones de enfocarse solo en los cambios del PR
+- **Instruccion de idioma**: Reporte en español, PR comments en ingles casual
 
-**Agents to launch (ALL in parallel):**
+**Agentes a lanzar (TODOS en paralelo):**
 
-1. **pr-description-checker** - Verify PR description matches actual changes
-2. **architecture-reviewer** - Evaluate design and suggest better approaches
-3. **security-reviewer** - Find security vulnerabilities
-4. **comment-analyzer** - Check comment accuracy and documentation
-5. **test-reviewer** - Review test coverage
-6. **error-handler-reviewer** - Find silent failures
-7. **type-reviewer** - Analyze type design (if TypeScript files changed)
-8. **code-reviewer** - General code quality
-9. **code-simplifier** - Suggest simplifications
+1. **pr-description-checker** - Verificar descripcion vs cambios reales
+2. **architecture-reviewer** - Evaluar diseño y sugerir alternativas
+3. **security-reviewer** - Encontrar vulnerabilidades de seguridad
+4. **comment-analyzer** - Verificar precision de comentarios
+5. **test-reviewer** - Revisar cobertura de tests
+6. **error-handler-reviewer** - Encontrar silent failures
+7. **type-reviewer** - Analizar diseño de tipos (si hay archivos TypeScript)
+8. **code-reviewer** - Calidad general del codigo
+9. **code-simplifier** - Sugerir simplificaciones
 
-For each agent, provide this context:
-- PR number: X
-- Changed files: [list]
-- Focus: Only analyze the changes in this PR, not the entire codebase
+### Paso 4: Agregar Resultados
 
-### Step 4: Aggregate Results
-
-After all agents complete, compile their findings into a single report:
+Compilar los hallazgos en un reporte unico:
 
 ```markdown
-# PR Review Summary
+# Resumen del Review
 
-**PR:** #<number> - <title>
-**Author:** <author>
+**PR:** #<numero> - <titulo>
+**Autor:** <autor>
 **Branch:** <head> -> <base>
-**Files Changed:** <count> (+<additions>/-<deletions>)
+**Archivos Cambiados:** <cantidad> (+<adiciones>/-<eliminaciones>)
 
 ---
 
-## Critical Issues (X found)
+## Problemas Criticos (X encontrados)
 
-Must fix before merge.
+Deben arreglarse antes de mergear.
 
-| # | Agent | Issue | Location | Action |
-|---|-------|-------|----------|--------|
-| 1 | security-reviewer | SQL injection vulnerability | file.ts:42 | Use parameterized query |
-| 2 | code-reviewer | Null pointer exception | api.ts:15 | Add null check |
-
----
-
-## Important Issues (X found)
-
-Should fix before merge.
-
-| # | Agent | Issue | Location | Action |
-|---|-------|-------|----------|--------|
-| 1 | error-handler-reviewer | Silent failure in catch | service.ts:88 | Log and rethrow |
+| # | Agente | Problema | Ubicacion | PR Comment |
+|---|--------|----------|-----------|------------|
+| 1 | security-reviewer | Vulnerabilidad de inyeccion SQL | file.ts:42 | `hey, this query looks vulnerable to SQL injection - consider using parameterized queries` |
+| 2 | code-reviewer | Posible null pointer | api.ts:15 | `heads up - this could throw if user is null, maybe add a check?` |
 
 ---
 
-## Suggestions (X found)
+## Problemas Importantes (X encontrados)
 
-Nice to have improvements.
+Deberian arreglarse antes de mergear.
 
-| # | Agent | Suggestion | Location |
-|---|-------|------------|----------|
-| 1 | code-simplifier | Can simplify nested conditionals | utils.ts:23 |
-| 2 | type-reviewer | Consider using branded type | types.ts:5 |
-
----
-
-## PR Description Accuracy
-
-<Result from pr-description-checker>
-
-- [ ] All claimed changes are implemented
-- [ ] No undocumented changes
-- Accuracy Score: X/10
+| # | Agente | Problema | Ubicacion | PR Comment |
+|---|--------|----------|-----------|------------|
+| 1 | error-handler-reviewer | Error silenciado en catch | service.ts:88 | `this catch block swallows the error - might want to log or rethrow` |
 
 ---
 
-## Test Coverage
+## Sugerencias (X encontradas)
 
-<Summary from test-reviewer>
+Mejoras opcionales.
 
-- Coverage estimate: X%
-- Missing critical tests: X
-- Test quality: GOOD/ADEQUATE/POOR
-
----
-
-## Security Assessment
-
-<Summary from security-reviewer>
-
-- Risk Level: CRITICAL/HIGH/MEDIUM/LOW/NONE
-- Vulnerabilities: X critical, X high, X medium, X low
+| # | Agente | Sugerencia | Ubicacion | PR Comment |
+|---|--------|------------|-----------|------------|
+| 1 | code-simplifier | Se puede simplificar condicionales | utils.ts:23 | `nit: could simplify this with early return` |
 
 ---
 
-## Positive Observations
+## Precision de la Descripcion del PR
 
-What's done well in this PR:
+<Resultado de pr-description-checker>
 
-- <From various agents>
-- <Good patterns found>
-- <Well-tested areas>
-
----
-
-## Action Plan
-
-### Before Merge (Required)
-
-1. [ ] Fix: <Critical issue 1> at file:line
-2. [ ] Fix: <Critical issue 2> at file:line
-
-### Recommended
-
-3. [ ] Address: <Important issue 1> at file:line
-4. [ ] Address: <Important issue 2> at file:line
-
-### Optional
-
-5. [ ] Consider: <Suggestion 1> at file:line
+- [ ] Todos los cambios declarados estan implementados
+- [ ] No hay cambios sin documentar
+- Puntaje de Precision: X/10
 
 ---
 
-## Review Metadata
+## Cobertura de Tests
 
-| Agent | Status | Findings |
-|-------|--------|----------|
-| pr-description-checker | Done | X issues |
-| architecture-reviewer | Done | X issues |
-| security-reviewer | Done | X issues |
-| comment-analyzer | Done | X issues |
-| test-reviewer | Done | X issues |
-| error-handler-reviewer | Done | X issues |
-| type-reviewer | Done | X issues |
-| code-reviewer | Done | X issues |
-| code-simplifier | Done | X suggestions |
+<Resumen de test-reviewer>
+
+- Cobertura estimada: X%
+- Tests criticos faltantes: X
+- Calidad de tests: BUENA/ADECUADA/POBRE
+
+---
+
+## Evaluacion de Seguridad
+
+<Resumen de security-reviewer>
+
+- Nivel de Riesgo: CRITICO/ALTO/MEDIO/BAJO/NINGUNO
+- Vulnerabilidades: X criticas, X altas, X medias, X bajas
+
+---
+
+## Observaciones Positivas
+
+Lo que esta bien hecho en este PR:
+
+- <De varios agentes>
+- <Buenos patrones encontrados>
+- <Areas bien testeadas>
+
+---
+
+## Plan de Accion
+
+### Antes de Mergear (Requerido)
+
+1. [ ] Arreglar: <Problema critico 1> en file:line
+2. [ ] Arreglar: <Problema critico 2> en file:line
+
+### Recomendado
+
+3. [ ] Atender: <Problema importante 1> en file:line
+
+### Opcional
+
+4. [ ] Considerar: <Sugerencia 1> en file:line
+
+---
+
+## Metadata del Review
+
+| Agente | Estado | Hallazgos |
+|--------|--------|-----------|
+| pr-description-checker | Listo | X problemas |
+| architecture-reviewer | Listo | X problemas |
+| security-reviewer | Listo | X problemas |
+| comment-analyzer | Listo | X problemas |
+| test-reviewer | Listo | X problemas |
+| error-handler-reviewer | Listo | X problemas |
+| type-reviewer | Listo | X problemas |
+| code-reviewer | Listo | X problemas |
+| code-simplifier | Listo | X sugerencias |
 ```
 
-## Usage Examples
+## Ejemplos de Uso
 
-**Review current branch's PR:**
+**Revisar PR del branch actual:**
 ```
 /asreview:review
 ```
 
-**Review specific PR:**
+**Revisar PR especifico:**
 ```
 /asreview:review 458
 /asreview:review https://github.com/owner/repo/pull/458
 ```
 
-## Notes
+## Notas
 
-- All agents run in parallel for faster reviews
-- Each agent focuses on its specialty for deep analysis
-- Results include file:line references for easy navigation
-- Action plan prioritizes by severity
+- Todos los agentes corren en paralelo para reviews rapidos
+- Cada agente se enfoca en su especialidad para analisis profundo
+- Los resultados incluyen referencias file:line para navegacion facil
+- Los PR Comments estan listos para copiar y pegar en GitHub
