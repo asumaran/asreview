@@ -10,12 +10,13 @@ Ejecuta un review completo de pull request usando multiples agentes especializad
 - El reporte completo debe estar en **ESPAÑOL**
 - Para cada hallazgo, incluir un **"PR Comment"** en **INGLES**, casual y breve, listo para copiar al PR
 - Los PR Comments deben ser directos, como si hablaras con un colega
+- **NO usar tablas** - usar listas para presentar los hallazgos
 
 Ejemplo de formato para cada hallazgo:
 ```
-**Ubicacion:** archivo.ts:42
-**Problema:** Posible inyeccion SQL por concatenacion de strings
-**PR Comment:** `hey, this query looks vulnerable to SQL injection - mind using parameterized queries instead?`
+1. **[agente]** `archivo.ts:42`
+   - **Problema:** Posible inyeccion SQL por concatenacion de strings
+   - **PR Comment:** `hey, this query looks vulnerable to SQL injection - mind using parameterized queries instead?`
 ```
 
 ## Flujo del Review
@@ -46,6 +47,7 @@ Lanzar TODOS los siguientes agentes simultaneamente usando la herramienta Task. 
 - La lista de archivos cambiados
 - Instrucciones de enfocarse solo en los cambios del PR
 - **Instruccion de idioma**: Reporte en español, PR comments en ingles casual
+- **Instruccion de formato**: Usar listas, NO tablas
 
 **Agentes a lanzar (TODOS en paralelo):**
 
@@ -77,10 +79,13 @@ Compilar los hallazgos en un reporte unico:
 
 Deben arreglarse antes de mergear.
 
-| # | Agente | Problema | Ubicacion | PR Comment |
-|---|--------|----------|-----------|------------|
-| 1 | security-reviewer | Vulnerabilidad de inyeccion SQL | file.ts:42 | `hey, this query looks vulnerable to SQL injection - consider using parameterized queries` |
-| 2 | code-reviewer | Posible null pointer | api.ts:15 | `heads up - this could throw if user is null, maybe add a check?` |
+1. **[security-reviewer]** `file.ts:42`
+   - **Problema:** Vulnerabilidad de inyeccion SQL por concatenacion de strings en query
+   - **PR Comment:** `hey, this query looks vulnerable to SQL injection - consider using parameterized queries`
+
+2. **[code-reviewer]** `api.ts:15`
+   - **Problema:** Posible null pointer exception si user es undefined
+   - **PR Comment:** `heads up - this could throw if user is null, maybe add a check?`
 
 ---
 
@@ -88,9 +93,13 @@ Deben arreglarse antes de mergear.
 
 Deberian arreglarse antes de mergear.
 
-| # | Agente | Problema | Ubicacion | PR Comment |
-|---|--------|----------|-----------|------------|
-| 1 | error-handler-reviewer | Error silenciado en catch | service.ts:88 | `this catch block swallows the error - might want to log or rethrow` |
+1. **[error-handler-reviewer]** `service.ts:88`
+   - **Problema:** Catch block vacio que traga el error sin loggearlo
+   - **PR Comment:** `this catch block swallows the error - might want to log or rethrow`
+
+2. **[test-reviewer]** `utils.ts:23`
+   - **Problema:** Funcion nueva sin cobertura de tests
+   - **PR Comment:** `this new function doesn't have tests - would be good to add some coverage`
 
 ---
 
@@ -98,9 +107,13 @@ Deberian arreglarse antes de mergear.
 
 Mejoras opcionales.
 
-| # | Agente | Sugerencia | Ubicacion | PR Comment |
-|---|--------|------------|-----------|------------|
-| 1 | code-simplifier | Se puede simplificar condicionales | utils.ts:23 | `nit: could simplify this with early return` |
+1. **[code-simplifier]** `utils.ts:45`
+   - **Sugerencia:** Se puede simplificar usando early return en vez de nesting
+   - **PR Comment:** `nit: could simplify this with early return`
+
+2. **[type-reviewer]** `types.ts:12`
+   - **Sugerencia:** Considerar usar branded type para el ID
+   - **PR Comment:** `optional: a branded type here would catch invalid IDs at compile time`
 
 ---
 
@@ -108,9 +121,15 @@ Mejoras opcionales.
 
 <Resultado de pr-description-checker>
 
-- [ ] Todos los cambios declarados estan implementados
-- [ ] No hay cambios sin documentar
-- Puntaje de Precision: X/10
+**Puntaje de Precision:** X/10
+
+### Cambios Verificados
+- [x] Feature A implementada correctamente
+- [x] Bug B arreglado como se describe
+
+### Discrepancias
+1. `file.ts:30` - La descripcion dice X pero el codigo hace Y
+   - **PR Comment:** `the description mentions X but I see Y in the code - which is correct?`
 
 ---
 
@@ -118,9 +137,12 @@ Mejoras opcionales.
 
 <Resumen de test-reviewer>
 
-- Cobertura estimada: X%
-- Tests criticos faltantes: X
-- Calidad de tests: BUENA/ADECUADA/POBRE
+- **Cobertura estimada:** X%
+- **Calidad de tests:** BUENA/ADECUADA/POBRE
+
+### Tests Faltantes Criticos
+1. `auth.ts:validateToken()` - Sin tests para caso de token expirado
+2. `api.ts:fetchUser()` - Sin tests para error de red
 
 ---
 
@@ -128,8 +150,13 @@ Mejoras opcionales.
 
 <Resumen de security-reviewer>
 
-- Nivel de Riesgo: CRITICO/ALTO/MEDIO/BAJO/NINGUNO
-- Vulnerabilidades: X criticas, X altas, X medias, X bajas
+- **Nivel de Riesgo:** CRITICO/ALTO/MEDIO/BAJO/NINGUNO
+
+### Vulnerabilidades por Severidad
+- Criticas: X
+- Altas: X
+- Medias: X
+- Bajas: X
 
 ---
 
@@ -137,9 +164,10 @@ Mejoras opcionales.
 
 Lo que esta bien hecho en este PR:
 
-- <De varios agentes>
-- <Buenos patrones encontrados>
-- <Areas bien testeadas>
+1. Buena separacion de concerns en `services/auth.ts`
+2. Tests exhaustivos para casos edge en `utils.spec.ts`
+3. Manejo de errores apropiado en `api/client.ts`
+4. Documentacion clara en las funciones publicas
 
 ---
 
@@ -147,32 +175,32 @@ Lo que esta bien hecho en este PR:
 
 ### Antes de Mergear (Requerido)
 
-1. [ ] Arreglar: <Problema critico 1> en file:line
-2. [ ] Arreglar: <Problema critico 2> en file:line
+1. [ ] Arreglar vulnerabilidad SQL en `db.ts:42`
+2. [ ] Agregar null check en `api.ts:15`
 
 ### Recomendado
 
-3. [ ] Atender: <Problema importante 1> en file:line
+3. [ ] Agregar tests para `auth.ts:validateToken()`
+4. [ ] Loggear errores en catch block de `service.ts:88`
 
 ### Opcional
 
-4. [ ] Considerar: <Sugerencia 1> en file:line
+5. [ ] Simplificar condicionales en `utils.ts:45`
+6. [ ] Actualizar descripcion del PR para reflejar cambio en `config.ts`
 
 ---
 
 ## Metadata del Review
 
-| Agente | Estado | Hallazgos |
-|--------|--------|-----------|
-| pr-description-checker | Listo | X problemas |
-| architecture-reviewer | Listo | X problemas |
-| security-reviewer | Listo | X problemas |
-| comment-analyzer | Listo | X problemas |
-| test-reviewer | Listo | X problemas |
-| error-handler-reviewer | Listo | X problemas |
-| type-reviewer | Listo | X problemas |
-| code-reviewer | Listo | X problemas |
-| code-simplifier | Listo | X sugerencias |
+- **pr-description-checker:** X hallazgos
+- **architecture-reviewer:** X hallazgos
+- **security-reviewer:** X hallazgos
+- **comment-analyzer:** X hallazgos
+- **test-reviewer:** X hallazgos
+- **error-handler-reviewer:** X hallazgos
+- **type-reviewer:** X hallazgos
+- **code-reviewer:** X hallazgos
+- **code-simplifier:** X sugerencias
 ```
 
 ## Ejemplos de Uso
