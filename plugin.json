@@ -1,0 +1,8 @@
+{
+  "name": "asreview",
+  "version": "1.0.0",
+  "description": "Comprehensive PR review toolkit with specialized parallel agents",
+  "author": "asumaran",
+  "commands": "commands",
+  "agents": "agents"
+}
