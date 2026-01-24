@@ -12,12 +12,11 @@ Ejecuta un review completo de pull request usando multiples agentes especializad
 - Los PR Comments deben ser directos, como si hablaras con un colega
 - **NO usar tablas** - usar listas para presentar los hallazgos
 
-**CRITICO - SOLO REPORTE:**
-- Este review es SOLO un reporte para el revisor
-- **NUNCA** comentar automaticamente en el PR de GitHub
-- **NUNCA** usar `gh pr comment` o `gh pr review`
-- **NUNCA** postear comentarios en ninguna plataforma
-- Los "PR Comments" son sugerencias de texto que el revisor puede copiar MANUALMENTE si lo desea
+**FLUJO DE COMENTARIOS:**
+- Los hallazgos **criticos** e **importantes** se envian automaticamente como **draft review** a GitHub
+- Las **sugerencias** solo se muestran en el reporte (no se envian a GitHub)
+- El draft queda pendiente para que el usuario lo revise y publique manualmente
+- Despues de enviar, se inicia un flujo interactivo para ajustar o eliminar comentarios
 
 Ejemplo de formato para cada hallazgo:
 ```
@@ -25,6 +24,16 @@ Ejemplo de formato para cada hallazgo:
    - **Problema:** Posible inyeccion SQL por concatenacion de strings
    - **PR Comment:** `hey, this query looks vulnerable to SQL injection - mind using parameterized queries instead?`
 ```
+
+**FORMATO DE PR COMMENTS:**
+- Usar backticks para referencias a codigo: variables, funciones, clases, tipos, etc.
+- Ejemplos:
+  - ❌ "the hasCapability method is duplicated"
+  - ✅ "the `hasCapability` method is duplicated"
+  - ❌ "validateExecutableNodes has N+1 queries"
+  - ✅ "`validateExecutableNodes` has N+1 queries"
+  - ❌ "consider using Promise.all"
+  - ✅ "consider using `Promise.all`"
 
 ## Flujo del Review
 
@@ -70,7 +79,7 @@ Lanzar TODOS los siguientes agentes simultaneamente usando la herramienta Task. 
 
 ### Paso 4: Agregar Resultados
 
-Compilar los hallazgos en un reporte unico:
+Compilar los hallazgos en un reporte unico y conciso. **NO repetir informacion** - cada hallazgo debe aparecer solo una vez.
 
 ```markdown
 # Resumen del Review
@@ -79,6 +88,15 @@ Compilar los hallazgos en un reporte unico:
 **Autor:** <autor>
 **Branch:** <head> -> <base>
 **Archivos Cambiados:** <cantidad> (+<adiciones>/-<eliminaciones>)
+
+---
+
+## Que hace este PR
+
+<Escribir 2-4 oraciones narrando de forma clara y concisa que implementa este PR basandose en los cambios reales del codigo, no en la descripcion del PR. Redactar como una historia facil de digerir que permita al revisor entender rapidamente el proposito y alcance de los cambios. Evitar lenguaje tecnico excesivo.>
+
+Ejemplo:
+> Este PR agrega la funcionalidad de exportar reportes a PDF. Introduce un nuevo servicio que convierte los datos del reporte a formato PDF usando la libreria jsPDF, y conecta un boton "Exportar" en la interfaz de usuario que dispara la descarga. Tambien incluye validaciones para manejar reportes vacios.
 
 ---
 
@@ -124,90 +142,121 @@ Mejoras opcionales.
 
 ---
 
-## Precision de la Descripcion del PR
+## Sin Hallazgos
 
-<Resultado de pr-description-checker>
+Agentes que no encontraron problemas: <lista de agentes>
+```
 
-**Puntaje de Precision:** X/10
+**IMPORTANTE:** NO agregar secciones adicionales despues de los hallazgos. El reporte termina aqui.
 
-### Cambios Verificados
-- [x] Feature A implementada correctamente
-- [x] Bug B arreglado como se describe
+### Paso 5: Verificar y Enviar Draft Review
 
-### Discrepancias
-1. `file.ts:30` - La descripcion dice X pero el codigo hace Y
-   - **PR Comment:** `the description mentions X but I see Y in the code - which is correct?`
+Despues de compilar el reporte, verificar cada hallazgo critico e importante:
+
+1. **Leer el codigo real** de cada archivo/linea mencionado usando `gh pr diff <number>` o la herramienta Read
+2. **Descartar falsos positivos** - si el hallazgo no aplica al codigo real, eliminarlo del reporte
+3. **Obtener el commit SHA** del PR: `gh pr view <number> --json headRefOid -q .headRefOid`
+4. **Enviar como draft review** a GitHub usando UNA SOLA llamada a la API:
+
+```bash
+# IMPORTANTE: Crear review con TODOS los comentarios en una sola llamada
+# NO usar la API de comments individuales (/pulls/{pr}/comments) - eso crea comentarios sueltos
+# SIEMPRE usar la API de reviews (/pulls/{pr}/reviews) con el array de comments
+
+gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews \
+  -X POST \
+  -f commit_id="<commit_sha>" \
+  --input - << 'EOF'
+{
+  "body": "<mensaje casual y breve generado dinamicamente>",
+  "comments": [
+    {
+      "path": "ruta/al/archivo.ts",
+      "line": 42,
+      "body": "comentario en ingles casual"
+    },
+    {
+      "path": "otro/archivo.ts",
+      "line": 15,
+      "body": "otro comentario"
+    }
+  ]
+}
+EOF
+
+**MENSAJE DEL REVIEW (body):**
+- Debe ser casual, breve y amigable (1 linea)
+- Generarlo dinamicamente segun el contexto del PR
+- Ejemplos:
+  - "Looking good! Just leaving a few comments."
+  - "Nice work on this! A few things caught my eye."
+  - "Solid PR, just some minor suggestions."
+  - "Great progress! Left some thoughts below."
+- NO incluir conteos, titulos formales, ni resumenes extensos
+```
+
+**CRITICO - NO HACER:**
+- ❌ NO usar `gh api repos/.../pulls/{pr}/comments` - esto crea comentarios SUELTOS fuera del review
+- ❌ NO crear el review primero y agregar comentarios despues por separado
+
+**CORRECTO:**
+- ✅ SIEMPRE usar `gh api repos/.../pulls/{pr}/reviews` con el array `comments` incluido
+- ✅ Todos los comentarios se envian en UNA sola llamada API
+- ✅ El review se crea automaticamente como PENDING (draft) si no se especifica `event`
+
+**IMPORTANTE:**
+- Solo enviar hallazgos **criticos** e **importantes** (NO sugerencias)
+- El review queda como PENDING (draft) hasta que el usuario lo publique manualmente
+- Guardar el **review_id** retornado para poder modificar/eliminar comentarios despues
+- Informar al usuario cuantos comentarios se enviaron y el review_id
+
+### Paso 6: Iteracion Interactiva
+
+Despues de enviar el draft, iniciar flujo interactivo con el usuario:
+
+```
+Se creo draft review (ID: <review_id>) con X comentarios. Vamos a revisarlos uno por uno.
 
 ---
 
-## Cobertura de Tests
+**Comentario 1/X** - `archivo.ts:42`
 
-<Resumen de test-reviewer>
+Codigo:
+[Mostrar las lineas relevantes del codigo usando el diff del PR]
 
-- **Cobertura estimada:** X%
-- **Calidad de tests:** BUENA/ADECUADA/POBRE
+Comentario enviado:
+> hey, this query looks vulnerable to SQL injection...
 
-### Tests Faltantes Criticos
-1. `auth.ts:validateToken()` - Sin tests para caso de token expirado
-2. `api.ts:fetchUser()` - Sin tests para error de red
+¿Que hacemos?
+- "ok" - mantener como esta
+- "ajusta: <nuevo texto>" - modificar el comentario
+- "elimina" - borrar este comentario
+```
 
----
+Para obtener los comentarios del review:
+```bash
+gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews/{review_id}/comments
+```
 
-## Evaluacion de Seguridad
+Para cada respuesta del usuario:
+- **"ok"** → pasar al siguiente comentario
+- **"ajusta: X"** → actualizar el comentario:
+  ```bash
+  gh api repos/{owner}/{repo}/pulls/comments/{comment_id} -X PATCH -f body="<nuevo texto>"
+  ```
+- **"elimina"** → eliminar el comentario:
+  ```bash
+  gh api repos/{owner}/{repo}/pulls/comments/{comment_id} -X DELETE
+  ```
 
-<Resumen de security-reviewer>
+Al terminar todos los comentarios:
+```
+Revision completada. El draft review (ID: <review_id>) tiene X comentarios.
 
-- **Nivel de Riesgo:** CRITICO/ALTO/MEDIO/BAJO/NINGUNO
+Para publicar el review, puedo ejecutar:
+  gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews/{review_id}/events -X POST -f event="COMMENT"
 
-### Vulnerabilidades por Severidad
-- Criticas: X
-- Altas: X
-- Medias: X
-- Bajas: X
-
----
-
-## Observaciones Positivas
-
-Lo que esta bien hecho en este PR:
-
-1. Buena separacion de concerns en `services/auth.ts`
-2. Tests exhaustivos para casos edge en `utils.spec.ts`
-3. Manejo de errores apropiado en `api/client.ts`
-4. Documentacion clara en las funciones publicas
-
----
-
-## Plan de Accion
-
-### Antes de Mergear (Requerido)
-
-1. [ ] Arreglar vulnerabilidad SQL en `db.ts:42`
-2. [ ] Agregar null check en `api.ts:15`
-
-### Recomendado
-
-3. [ ] Agregar tests para `auth.ts:validateToken()`
-4. [ ] Loggear errores en catch block de `service.ts:88`
-
-### Opcional
-
-5. [ ] Simplificar condicionales en `utils.ts:45`
-6. [ ] Actualizar descripcion del PR para reflejar cambio en `config.ts`
-
----
-
-## Metadata del Review
-
-- **pr-description-checker:** X hallazgos
-- **architecture-reviewer:** X hallazgos
-- **security-reviewer:** X hallazgos
-- **comment-analyzer:** X hallazgos
-- **test-reviewer:** X hallazgos
-- **error-handler-reviewer:** X hallazgos
-- **type-reviewer:** X hallazgos
-- **code-reviewer:** X hallazgos
-- **code-simplifier:** X sugerencias
+O puedes ir a GitHub y publicarlo manualmente con "Request changes" o "Approve".
 ```
 
 ## Ejemplos de Uso
@@ -228,5 +277,6 @@ Lo que esta bien hecho en este PR:
 - Todos los agentes corren en paralelo para reviews rapidos
 - Cada agente se enfoca en su especialidad para analisis profundo
 - Los resultados incluyen referencias file:line para navegacion facil
-- Los PR Comments son texto sugerido para copiar manualmente
-- **NUNCA se postean comentarios automaticamente** - este es solo un reporte
+- Hallazgos criticos e importantes se verifican leyendo el codigo real antes de enviar
+- Los comentarios se envian como **draft review** (pendiente) para revision del usuario
+- Flujo interactivo permite ajustar o eliminar comentarios antes de publicar
