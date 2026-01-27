@@ -291,13 +291,12 @@ Para cada respuesta del usuario:
 
 Al terminar todos los comentarios:
 ```
-Revision completada. El draft review (ID: <review_id>) tiene X comentarios.
+Revision completada. El draft review (ID: <review_id>) tiene X comentarios listos para publicar.
 
-Para publicar el review, puedo ejecutar:
-  gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews/{review_id}/events -X POST -f event="COMMENT"
-
-O puedes ir a GitHub y publicarlo manualmente con "Request changes" o "Approve".
+Puedes ir a GitHub para revisar y publicar el review manualmente.
 ```
+
+**IMPORTANTE:** NUNCA ofrecer publicar el review. La publicacion es SIEMPRE manual por el usuario.
 
 ## Ejemplos de Uso
 
