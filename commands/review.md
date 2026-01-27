@@ -65,27 +65,30 @@ Ejemplo de formato para cada hallazgo:
 2. Si no, verificar si el branch actual tiene PR abierto: `gh pr view --json number,title,body,url`
 3. Si no hay PR, revisar cambios del branch actual contra main
 
-### Paso 2: Obtener Informacion del PR
+### Paso 2: Checkout y Obtener Informacion del PR
 
 ```bash
+# Checkout del branch del PR para acceso local a archivos
+gh pr checkout <number>
+
 # Detalles del PR
-gh pr view <number> --json title,body,files,additions,deletions,baseRefName,headRefName,author
+gh pr view <number> --json title,body,files,additions,deletions,baseRefName,headRefName,author,headRefOid
 
-# Obtener el diff
-gh pr diff <number>
-
-# Listar archivos cambiados
+# Listar archivos cambiados (GUARDAR ESTA LISTA)
 gh pr diff <number> --name-only
 ```
+
+**IMPORTANTE:** Guardar la lista de archivos cambiados. Los agentes SOLO deben analizar estos archivos.
 
 ### Paso 3: Lanzar Agentes en Paralelo
 
 Lanzar TODOS los siguientes agentes simultaneamente usando la herramienta Task. Cada agente debe recibir:
-- El numero de PR o nombre del branch
-- La lista de archivos cambiados
-- Instrucciones de enfocarse solo en los cambios del PR
+- La **lista exacta de archivos cambiados** (rutas completas)
+- Instruccion de usar la herramienta **Read** para leer los archivos (NO el diff)
+- Instruccion de reportar **numeros de linea exactos** del archivo real
 - **Instruccion de idioma**: Reporte en español, PR comments en ingles casual
 - **Instruccion de formato**: Usar listas, NO tablas
+- **SOLO analizar los archivos de la lista** - ignorar cualquier otro archivo
 
 **Agentes a lanzar (TODOS en paralelo):**
 
