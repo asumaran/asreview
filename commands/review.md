@@ -4,6 +4,28 @@ Ejecuta un review completo de pull request usando multiples agentes especializad
 
 **Arguments:** "$ARGUMENTS"
 
+---
+
+## ⛔ REGLA CRITICA - DRAFT REVIEW OBLIGATORIO ⛔
+
+**NUNCA, JAMAS, BAJO NINGUNA CIRCUNSTANCIA publicar comentarios directamente en un PR.**
+
+Los reviews SIEMPRE deben crearse como **DRAFT (PENDING)** para que el usuario los revise antes de publicar.
+
+**PROHIBIDO:**
+- ❌ Usar `event: "COMMENT"` o `event: "APPROVE"` o `event: "REQUEST_CHANGES"` al crear el review
+- ❌ Usar la API `/pulls/{pr}/comments` que crea comentarios sueltos (fuera del review)
+- ❌ Cualquier accion que publique comentarios visibles al autor del PR sin aprobacion del usuario
+
+**OBLIGATORIO:**
+- ✅ Crear review SIN el parametro `event` (se crea como PENDING automaticamente)
+- ✅ Usar la API `/pulls/{pr}/reviews` con array de `comments` incluido
+- ✅ Esperar a que el usuario revise y publique manualmente
+
+**Si tienes duda, NO envies el review. Pregunta al usuario primero.**
+
+---
+
 ## Instrucciones de Idioma
 
 **IMPORTANTE:**
@@ -159,30 +181,25 @@ Despues de compilar el reporte, verificar cada hallazgo critico e importante:
 4. **Enviar como draft review** a GitHub usando UNA SOLA llamada a la API:
 
 ```bash
-# IMPORTANTE: Crear review con TODOS los comentarios en una sola llamada
-# NO usar la API de comments individuales (/pulls/{pr}/comments) - eso crea comentarios sueltos
-# SIEMPRE usar la API de reviews (/pulls/{pr}/reviews) con el array de comments
+# ⛔ CRITICO: NO incluir el parametro "event" - esto mantiene el review como PENDING (draft)
+# ⛔ NUNCA usar: -f event="COMMENT" ni -f event="APPROVE" ni -f event="REQUEST_CHANGES"
+# ⛔ NUNCA usar la API /pulls/{pr}/comments - eso crea comentarios SUELTOS visibles inmediatamente
 
-gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews \
-  -X POST \
-  -f commit_id="<commit_sha>" \
-  --input - << 'EOF'
+# ✅ CORRECTO: Crear review SIN event, con todos los comentarios en el body JSON
+cat << 'EOF' | gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews -X POST --input -
 {
-  "body": "<mensaje casual y breve generado dinamicamente>",
+  "commit_id": "<commit_sha>",
+  "body": "<mensaje casual y breve>",
   "comments": [
     {
       "path": "ruta/al/archivo.ts",
       "line": 42,
       "body": "comentario en ingles casual"
-    },
-    {
-      "path": "otro/archivo.ts",
-      "line": 15,
-      "body": "otro comentario"
     }
   ]
 }
 EOF
+```
 
 **MENSAJE DEL REVIEW (body):**
 - Debe ser casual, breve y amigable (1 linea)
@@ -193,22 +210,42 @@ EOF
   - "Solid PR, just some minor suggestions."
   - "Great progress! Left some thoughts below."
 - NO incluir conteos, titulos formales, ni resumenes extensos
-```
 
-**CRITICO - NO HACER:**
-- ❌ NO usar `gh api repos/.../pulls/{pr}/comments` - esto crea comentarios SUELTOS fuera del review
-- ❌ NO crear el review primero y agregar comentarios despues por separado
+---
 
-**CORRECTO:**
-- ✅ SIEMPRE usar `gh api repos/.../pulls/{pr}/reviews` con el array `comments` incluido
-- ✅ Todos los comentarios se envian en UNA sola llamada API
-- ✅ El review se crea automaticamente como PENDING (draft) si no se especifica `event`
+**⛔ PROHIBIDO - NUNCA HACER:**
+- ❌ `gh api .../reviews -f event="COMMENT"` → PUBLICA EL REVIEW INMEDIATAMENTE
+- ❌ `gh api .../reviews -f event="APPROVE"` → APRUEBA Y PUBLICA INMEDIATAMENTE
+- ❌ `gh api .../reviews -f event="REQUEST_CHANGES"` → PUBLICA INMEDIATAMENTE
+- ❌ `gh api .../pulls/{pr}/comments` → CREA COMENTARIOS SUELTOS VISIBLES INMEDIATAMENTE
+- ❌ Crear review primero y agregar comentarios despues por separado
+
+**✅ OBLIGATORIO:**
+- ✅ Usar `gh api .../reviews` SIN el parametro `event`
+- ✅ Incluir array `comments` en el JSON body
+- ✅ Verificar que la respuesta tenga `"state": "PENDING"`
+- ✅ Si la respuesta NO tiene `"state": "PENDING"`, ALERTAR AL USUARIO INMEDIATAMENTE
+
+---
 
 **IMPORTANTE:**
 - Solo enviar hallazgos **criticos** e **importantes** (NO sugerencias)
 - El review queda como PENDING (draft) hasta que el usuario lo publique manualmente
 - Guardar el **review_id** retornado para poder modificar/eliminar comentarios despues
 - Informar al usuario cuantos comentarios se enviaron y el review_id
+
+**VERIFICACION POST-CREACION (OBLIGATORIA):**
+Despues de crear el review, SIEMPRE verificar que el estado sea PENDING:
+```bash
+# La respuesta de la API debe incluir "state": "PENDING"
+# Si ves "state": "COMMENTED" o cualquier otro estado, ALGO SALIO MAL
+# En ese caso, ALERTAR AL USUARIO INMEDIATAMENTE y ofrecer eliminar los comentarios
+```
+
+Si el review NO quedo como PENDING:
+1. Informar al usuario del error
+2. Ofrecer eliminar los comentarios publicados
+3. Investigar que salio mal antes de reintentar
 
 ### Paso 6: Iteracion Interactiva
 
